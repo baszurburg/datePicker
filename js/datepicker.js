@@ -929,12 +929,30 @@ var datePickerController = (function datePickerController() {
                 };                                
             };            
 
-            // Update the UI title bar displaying the year & month
-            var span = o.titleBar.getElementsByTagName("span");
-            removeChildNodes(span[0]);
-            removeChildNodes(span[1]);
-            span[0].appendChild(document.createTextNode(getMonthTranslation(cm, false) + nbsp));
-            span[1].appendChild(document.createTextNode(cy));
+
+            var span;
+            //set the value in the monthpicker
+            if (this.monthPicker && this.yearPicker) {
+                this.monthPicker.selectedIndex = cm;
+                this.yearPicker.value = cy;
+            } else if (this.monthPicker) {
+                this.monthPicker.selectedIndex = cm;
+                span = o.titleBar.getElementsByTagName("span");
+                removeChildNodes(span[0]);
+                span[0].appendChild(document.createTextNode(cy));
+            } else if (this.yearPicker) {
+                this.yearPicker.value = cy;
+                span = o.titleBar.getElementsByTagName("span");
+                removeChildNodes(span[0]);
+                span[0].appendChild(document.createTextNode(getMonthTranslation(cm, false) + nbsp));
+            } else {
+                // Update the UI title bar displaying the year & month
+                span = o.titleBar.getElementsByTagName("span");
+                removeChildNodes(span[0]);
+                removeChildNodes(span[1]);
+                span[0].appendChild(document.createTextNode(getMonthTranslation(cm, false) + nbsp));
+                span[1].appendChild(document.createTextNode(cy));
+            }
 
             // If we are in an animation 
             if(o.timerSet) {
@@ -1096,6 +1114,23 @@ var datePickerController = (function datePickerController() {
                 }
                 el.appendChild(select);
             }
+            function createYearPicker(el) {
+                var select = document.createElement("select"),
+                    option,
+                    i;
+                select.setAttribute("name", "year-picker");
+                select.setAttribute("id", o.id + "-year-picker");
+
+                 // ToDo: create dates based on the date range (for pharos curr year and cuur year + 1 is enough)
+
+                for (i = o.yearPickerStart; i < o.yearPickerEnd + 1; i++) {
+                    option = document.createElement("option");
+                    option.setAttribute("value", i);
+                    option.innerHTML = i;
+                    select.appendChild(option);
+                }
+                el.appendChild(select);
+            }
 
             this.div                     = document.createElement('div');
             this.div.id                  = "fd-" + this.id;
@@ -1219,15 +1254,23 @@ var datePickerController = (function datePickerController() {
             tr.appendChild(this.titleBar);
             tr = null;
 
-            var span = document.createElement('span');
-            span.appendChild(document.createTextNode(nbsp));
-            span.className = "month-display" + dragEnabledCN; 
-            this.titleBar.appendChild(span);
+            if (options.showMonthPicker) {
+                createMonthPicker(this.titleBar);
+            } else {
+                var span = document.createElement('span');
+                span.appendChild(document.createTextNode(nbsp));
+                span.className = "month-display" + dragEnabledCN;
+                this.titleBar.appendChild(span);
+            }
 
-            span = document.createElement('span');
-            span.appendChild(document.createTextNode(nbsp));
-            span.className = "year-display" + dragEnabledCN; 
-            this.titleBar.appendChild(span);
+            if (options.showYearPicker) {
+                createYearPicker(this.titleBar);
+            } else {
+                span = document.createElement('span');
+                span.appendChild(document.createTextNode(nbsp));
+                span.className = "year-display" + dragEnabledCN;
+                this.titleBar.appendChild(span);
+            }
 
             span = null;
 
@@ -1258,10 +1301,6 @@ var datePickerController = (function datePickerController() {
             tr.appendChild(th);
             th = createSingleThAndButton({className:"next-but next-year",  id:"-next-year-but", text:"\u00BB", title:getTitleTranslation(3) });
             tr.appendChild(th);
-
-            if (options.showMonthPicker) {
-                createMonthPicker(thToday);
-            }
 
             tableBody = document.createElement('tbody');
             this.table.appendChild(tableBody);
@@ -1347,6 +1386,7 @@ var datePickerController = (function datePickerController() {
             this.butNextYear     = document.getElementById(this.id + "-next-year-but"); 
             this.butNextMonth    = document.getElementById(this.id + "-next-month-but");
             this.monthPicker     = document.getElementById(this.id + "-month-picker") || null;
+            this.yearPicker      = document.getElementById(this.id + "-year-picker") || null;
 
 			if (this.monthPicker) {
 				this.monthPicker.onchange = function(e) {
@@ -1362,6 +1402,21 @@ var datePickerController = (function datePickerController() {
 					o.updateTable();
 				};
 			}
+
+            if (this.yearPicker) {
+                this.yearPicker.onchange = function(e) {
+                    e = e || document.parentWindow.event;
+                    var el = e.target != null ? e.target : e.srcElement,
+                        n = o.date.getDate(),
+                        d = new Date(o.date);
+                    d.setDate(2);
+                    d.setFullYear(el.options[el.selectedIndex].value);
+                    // Don't go over the days in the month
+                    d.setDate(Math.min(n, daysInMonth(d.getMonth(),d.getFullYear())));
+                    o.date = new Date(d);
+                    o.updateTable();
+                };
+            }
 
             if(this.noToday && this.butToday) {
                 this.butToday.style.display = "none";        
@@ -2406,14 +2461,14 @@ var datePickerController = (function datePickerController() {
             if(!level) { 
                 return true; 
             };
-            this.date = new Date(this.rangeLow.substr(0,4), this.rangeLow.substr(4,2)-1, this.rangeLow.substr(6,2), 5, 0, 0);
+            this.date = new Date(parseInt(this.rangeLow.toString().substr(0,4), 10), parseInt(this.rangeLow.toString().substr(4,2), 10) - 1, parseInt(this.rangeLow.toString().substr(6,2), 10) , 5, 0, 0);
             return false;
         };
         if(this.rangeHigh && +dt > +this.rangeHigh) {
             if(!level) { 
                 return true; 
             };
-            this.date = new Date(this.rangeHigh.substr(0,4), this.rangeHigh.substr(4,2)-1, this.rangeHigh.substr(6,2), 5, 0, 0);
+            this.date = new Date(parseInt(this.rangeHigh.toString().substr(0,4),10), parseInt(this.rangeHigh.toString().substr(4,2), 10) - 1, parseInt(this.rangeHigh.toString().substr(6,2), 10), 5, 0, 0);
         };
         return false;
     };  
@@ -3264,6 +3319,7 @@ var datePickerController = (function datePickerController() {
              
         var partsFound  = {d:0,m:0,y:0},
             cursorDate  = false,
+            currentYear = new Date().getFullYear(),
             myMin       = 0,
             myMax       = 0,               
             fmt,
@@ -3437,8 +3493,14 @@ var datePickerController = (function datePickerController() {
             hideInput:!!(options.hideInput),
             // Do we hide the "today" button
             noToday:!!(options.noTodayButton),
-            // Do we show a monthPicker at the today button place
+            // Do we show a month Picker
             showMonthPicker:!!(options.showMonthPicker),
+            // Do we show a year Picker
+            showYearPicker:!!(options.showYearPicker),
+            // Start year for the year picker
+            yearPickerStart:options.yearPickerStart && typeof options.yearPickerStart == 'number' ? parseInt(options.yearPickerStart, 10) : currentYear - 5,
+            // End year for the yearpicker
+            yearPickerEnd:!!(options.yearPickerEnd)  && typeof options.yearPickerEnd == 'number' ? parseInt(options.yearPickerEnd, 10): currentYear + 5,
             // Do we show week numbers
             showWeeks:!!(options.showWeeks),
             // Do we fill the entire grid with dates                                                  
