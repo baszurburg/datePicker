@@ -936,7 +936,6 @@ var datePickerController = (function datePickerController() {
             span[0].appendChild(document.createTextNode(getMonthTranslation(cm, false) + nbsp));
             span[1].appendChild(document.createTextNode(cy));
 
-			
             // If we are in an animation 
             if(o.timerSet) {
                 // Speed the timer up a little bit to make the pause between updates quicker
@@ -1059,15 +1058,45 @@ var datePickerController = (function datePickerController() {
                     but.className = details.className;
                     but.id = o.id + details.id;
                     but.appendChild(document.createTextNode(details.text || o.nbsp));
-                    but.title = details.title || "";                                          
+                    but.title = details.title || "";
                     /*@cc_on
                     /*@if(@_win32)
                     th.unselectable = but.unselectable = "on";
                     /*@end@*/
                     th.appendChild(but);
                 };
-            };  
-                
+            };
+            function createSingleThAndButton(details) {
+                var th = createTH(details);
+                //tr.appendChild(th);
+                var but = document.createElement('span');
+                but.className = details.className;
+                but.id = o.id + details.id;
+                but.appendChild(document.createTextNode(details.text || o.nbsp));
+                but.title = details.title || "";
+                /*@cc_on
+                 /*@if(@_win32)
+                 th.unselectable = but.unselectable = "on";
+                 /*@end@*/
+                th.appendChild(but);
+                return th;
+            };
+            function createMonthPicker(el) {
+                var select = document.createElement("select"),
+                    option,
+                    i;
+                select.setAttribute("name", "month-picker");
+                select.setAttribute("id", o.id + "-month-picker");
+
+                for (i = 0; i < 12; i++) {
+                    option = document.createElement("option");
+                    option.setAttribute("value", i);
+                    option.innerHTML = getMonthTranslation(i, false);
+                    select.appendChild(option);
+                }
+                el.appendChild(select);
+            }
+
             this.div                     = document.createElement('div');
             this.div.id                  = "fd-" + this.id;
             this.div.className           = "date-picker" + this.bespokeClass;  
@@ -1206,6 +1235,7 @@ var datePickerController = (function datePickerController() {
             setARIARole(tr, "presentation");
             tableHead.appendChild(tr);
 
+            /* BZ 20130118 - we create single th's because we want to change the today th
             createThAndButton(tr, [
             {className:"prev-but prev-year",  id:"-prev-year-but", text:"\u00AB", title:getTitleTranslation(2) },
             {className:"prev-but prev-month", id:"-prev-month-but", text:"\u2039", title:getTitleTranslation(0) },
@@ -1213,6 +1243,25 @@ var datePickerController = (function datePickerController() {
             {className:"next-but next-month", id:"-next-month-but", text:"\u203A", title:getTitleTranslation(1)},
             {className:"next-but next-year",  id:"-next-year-but", text:"\u00BB", title:getTitleTranslation(3) }
             ]);
+            */
+
+            var th,
+                thToday;
+
+            th = createSingleThAndButton({className:"prev-but prev-year",  id:"-prev-year-but", text:"\u00AB", title:getTitleTranslation(2) });
+            tr.appendChild(th);
+            th = createSingleThAndButton({className:"prev-but prev-month", id:"-prev-month-but", text:"\u2039", title:getTitleTranslation(0) });
+            tr.appendChild(th);
+            thToday = createSingleThAndButton({colspan:this.showWeeks ? 4 : 3, className:"today-but", id:"-today-but", text:getTitleTranslation(4)});
+            tr.appendChild(thToday);
+            th = createSingleThAndButton({className:"next-but next-month", id:"-next-month-but", text:"\u203A", title:getTitleTranslation(1)});
+            tr.appendChild(th);
+            th = createSingleThAndButton({className:"next-but next-year",  id:"-next-year-but", text:"\u00BB", title:getTitleTranslation(3) });
+            tr.appendChild(th);
+
+            if (options.showMonthPicker) {
+                createMonthPicker(thToday);
+            }
 
             tableBody = document.createElement('tbody');
             this.table.appendChild(tableBody);
@@ -1297,8 +1346,24 @@ var datePickerController = (function datePickerController() {
             this.butToday        = document.getElementById(this.id + "-today-but");
             this.butNextYear     = document.getElementById(this.id + "-next-year-but"); 
             this.butNextMonth    = document.getElementById(this.id + "-next-month-but");
+            this.monthPicker     = document.getElementById(this.id + "-month-picker") || null;
 
-            if(this.noToday) {
+			if (this.monthPicker) {
+				this.monthPicker.onchange = function(e) {
+					e = e || document.parentWindow.event;
+					var el = e.target != null ? e.target : e.srcElement,
+					    n = o.date.getDate(),
+                        d = new Date(o.date);                         
+                    d.setDate(2);
+                    d.setMonth(el.options[el.selectedIndex].value);
+                    // Don't go over the days in the month
+                    d.setDate(Math.min(n, daysInMonth(d.getMonth(),d.getFullYear())));
+                    o.date = new Date(d);
+					o.updateTable();
+				};
+			}
+
+            if(this.noToday && this.butToday) {
                 this.butToday.style.display = "none";        
             };
                 
@@ -1454,7 +1519,8 @@ var datePickerController = (function datePickerController() {
                     return stopEvent(e);
             };
             return true;                                                                      
-        }; 
+        };
+
         this.onclick = function(e) {
             if(o.opacity != o.opacityTo || o.disabled) {
                 return stopEvent(e);
@@ -2678,18 +2744,20 @@ var datePickerController = (function datePickerController() {
         this.disabled = false;                
     };
     datePicker.prototype.disableTodayButton = function() {
-        var today = new Date();                
-        removeClass(this.butToday, "fd-disabled");
-        if(this.outOfRange(today) 
-           || 
-           (this.date.getDate() == today.getDate() 
-            && 
-            this.date.getMonth() == today.getMonth() 
-            && 
-            this.date.getFullYear() == today.getFullYear())
-            ) {
-            addClass(this.butToday, "fd-disabled");                          
-        };
+        var today = new Date();
+        if (this.butToday) {
+            removeClass(this.butToday, "fd-disabled");
+            if(this.outOfRange(today)
+               ||
+               (this.date.getDate() == today.getDate()
+                &&
+                this.date.getMonth() == today.getMonth()
+                &&
+                this.date.getFullYear() == today.getFullYear())
+                ) {
+                addClass(this.butToday, "fd-disabled");
+            }
+        }
     };
     datePicker.prototype.updateTableHeaders = function() {
         var colspanTotal = this.showWeeks ? 8 : 7,
@@ -3369,6 +3437,8 @@ var datePickerController = (function datePickerController() {
             hideInput:!!(options.hideInput),
             // Do we hide the "today" button
             noToday:!!(options.noTodayButton),
+            // Do we show a monthPicker at the today button place
+            showMonthPicker:!!(options.showMonthPicker),
             // Do we show week numbers
             showWeeks:!!(options.showWeeks),
             // Do we fill the entire grid with dates                                                  
