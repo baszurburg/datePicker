@@ -965,10 +965,10 @@ var datePickerController = (function datePickerController() {
             // We are not currently updating the UI
             o.inUpdate = o.delayedUpdate = false; 
             // Focus on the correct TD node
-            if (!updateOnly) {
+			if (!updateOnly) {
 				o.setNewFocus();
 			}			
-        };
+		};
         
         // Removes all scaffold from the DOM & events from memory
         this.destroy = function() {
@@ -1104,6 +1104,7 @@ var datePickerController = (function datePickerController() {
                     option,
                     i;
                 select.setAttribute("name", "month-picker");
+                select.setAttribute("class", "month-picker");
                 select.setAttribute("id", o.id + "-month-picker");
 
                 for (i = 0; i < 12; i++) {
@@ -1119,6 +1120,7 @@ var datePickerController = (function datePickerController() {
                     option,
                     i;
                 select.setAttribute("name", "year-picker");
+                select.setAttribute("class", "year-picker");
                 select.setAttribute("id", o.id + "-year-picker");
 
                  // ToDo: create dates based on the date range (for pharos curr year and cuur year + 1 is enough)
@@ -1399,7 +1401,8 @@ var datePickerController = (function datePickerController() {
                     // Don't go over the days in the month
                     d.setDate(Math.min(n, daysInMonth(d.getMonth(),d.getFullYear())));
                     o.date = new Date(d);
-					o.updateTable();
+					debugger;
+					o.updateTable(true, "updateOnly");
 				};
 			}
 
@@ -1414,7 +1417,7 @@ var datePickerController = (function datePickerController() {
                     // Don't go over the days in the month
                     d.setDate(Math.min(n, daysInMonth(d.getMonth(),d.getFullYear())));
                     o.date = new Date(d);
-                    o.updateTable();
+                    o.updateTable(true, "updateOnly");
                 };
             }
 
