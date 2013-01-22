@@ -1401,7 +1401,6 @@ var datePickerController = (function datePickerController() {
                     // Don't go over the days in the month
                     d.setDate(Math.min(n, daysInMonth(d.getMonth(),d.getFullYear())));
                     o.date = new Date(d);
-					debugger;
 					o.updateTable(true, "updateOnly");
 				};
 			}
