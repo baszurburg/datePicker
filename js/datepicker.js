@@ -2728,8 +2728,12 @@ var datePickerController = (function datePickerController() {
 
         if(this.fullCreate) {
             if(el.type && el.type != "hidden" && !noFocus && !updateOnly) { 
-                el.focus(); 
-            };                                                                                                                                             
+                try {
+                    el.focus();
+                } catch (err) {
+                    noFocus = false;
+                }
+            };
         };
 
 		if(!noFocus) {
