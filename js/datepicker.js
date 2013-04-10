@@ -318,8 +318,14 @@ var datePickerController = (function datePickerController() {
 
     // Basic event functions
     function addEvent(obj, type, fn) {
+
         try {
             if(obj.attachEvent) {
+                // fail safe for IE8 and so, where a single detach does not remove all events
+                try { 
+                    obj.detachEvent("on"+type, fn);
+                } catch (err) {}
+
                 obj.attachEvent("on"+type, fn);
             } else {
                 obj.addEventListener(type, fn, true);
@@ -678,6 +684,7 @@ var datePickerController = (function datePickerController() {
             if(o.timerSet && !o.delayedUpdate) {
                 // Are we incrementing/decrementing the month
                 if(o.monthInc) {
+
                     var n = o.date.getDate(),
                         d = new Date(o.date);
 
@@ -692,6 +699,7 @@ var datePickerController = (function datePickerController() {
                     o.date.setMonth(o.date.getMonth() + o.monthInc);
                     o.date.setFullYear(o.date.getFullYear() + o.yearInc);
                 };
+                o.stopTimer();
             };
 
             // Make sure the internal date is within range
@@ -1526,6 +1534,7 @@ var datePickerController = (function datePickerController() {
 
                 o.mouseDownElem = origEl;
 
+
                 addEvent(document, "mouseup", o.clearTimer);
                 addEvent(origEl, "mouseout",  o.clearTimer);
 
@@ -1554,7 +1563,7 @@ var datePickerController = (function datePickerController() {
                     };
                 };
 
-                o.updateTable();
+                o.updateTable(true, "updateOnly");
 
                 return stopEvent(e);
 
@@ -1594,7 +1603,7 @@ var datePickerController = (function datePickerController() {
                     o.dateSet    = new Date(o.date);
                     o.noFocus    = true;
                     o.callback("dateset", { "id":o.id, "date":o.dateSet, "dd":o.dateSet.getDate(), "mm":o.dateSet.getMonth() + 1, "yyyy":o.dateSet.getFullYear() });
-                    o.returnFormattedDate();
+                    o.returnFormattedDate(false, "updateOnly");
                     o.hide();
                     o.stopTimer();
                     break;
@@ -1660,6 +1669,7 @@ var datePickerController = (function datePickerController() {
 
             if(this.noFocus) {
                 this.clickActivated = true;
+
                 addEvent(document, "mousedown", this.onmousedown);
                 if(mouseWheel) {
                     if (window.addEventListener && !window.devicePixelRatio) {
@@ -1695,6 +1705,7 @@ var datePickerController = (function datePickerController() {
         };
 
         this.hide = function() {
+
             if(!this.visible || !this.created || !document.getElementById('fd-' + this.id)) {
                 return;
             };
@@ -2088,7 +2099,9 @@ var datePickerController = (function datePickerController() {
 
         if(this.staticPos) {
             this.create();
+
         } else {
+
             this.createButton();
         };
 
@@ -2147,6 +2160,7 @@ var datePickerController = (function datePickerController() {
             if(!dpVisible) {
                 addClass(this, "date-picker-button-active")
                 hideAll(inpId);
+
                 showDatePicker(inpId, autoFocus);
             } else {
                 removeClass(this, "date-picker-button-active");
